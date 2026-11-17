@@ -1,0 +1,919 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Streptococcus pneumoniae — Epidemiological & Clinical Dashboard | MNU</title>
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@700;800&display=swap" rel="stylesheet">
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
+
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        display: ['Plus Jakarta Sans', 'sans-serif'],
+                    },
+                    colors: {
+                        navy: {
+                            950: '#060818',
+                            900: '#0B0E26',
+                            800: '#12163A',
+                        },
+                        indigoDeep: '#120929',
+                        gold: {
+                            300: '#FDE68A',
+                            400: '#F5B82E',
+                            500: '#D4AF37',
+                        },
+                        violetGlow: '#8B5CF6',
+                        cyanGlow: '#38BDF8',
+                        coralGlow: '#F43F5E'
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body {
+            background: radial-gradient(circle at 12% 10%, #1C1042 0%, #060818 52%, #120929 100%);
+            color: #F8FAFC;
+            overflow-x: hidden;
+        }
+
+        .glass-card {
+            background: linear-gradient(155deg, rgba(16, 20, 52, 0.92) 0%, rgba(22, 14, 52, 0.88) 100%);
+            backdrop-filter: blur(14px);
+            border: 1px solid rgba(139, 92, 246, 0.34);
+            box-shadow: 0 12px 32px -8px rgba(0, 0, 0, 0.65), inset 0 1px 0 rgba(255, 255, 255, 0.07);
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .glass-card:hover {
+            border-color: rgba(245, 184, 46, 0.65);
+            box-shadow: 0 16px 36px -8px rgba(0, 0, 0, 0.75), 0 0 22px rgba(245, 184, 46, 0.16);
+            transform: translateY(-2px);
+        }
+
+        .gold-glow {
+            text-shadow: 0 0 22px rgba(245, 184, 46, 0.38);
+        }
+
+        .cyan-glow {
+            text-shadow: 0 0 20px rgba(56, 189, 248, 0.35);
+        }
+
+        /* Circular University Badges (Zero Cropping) */
+        .seal-badge {
+            width: 58px;
+            height: 58px;
+            border-radius: 9999px;
+            background: #FFFFFF;
+            padding: 2px;
+            border: 2.5px solid #F5B82E;
+            box-shadow: 0 0 16px rgba(245, 184, 46, 0.35);
+            overflow: hidden;
+            cursor: pointer;
+            flex-shrink: 0;
+            transition: transform 0.25s ease, box-shadow 0.25s ease;
+        }
+
+        .seal-badge:hover {
+            transform: scale(1.08);
+            box-shadow: 0 0 24px rgba(245, 184, 46, 0.7);
+        }
+
+        .seal-badge img, .seal-badge svg {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            border-radius: 9999px;
+            display: block;
+        }
+
+        @keyframes pulseGlow {
+            0%, 100% { filter: drop-shadow(0 0 8px rgba(139, 92, 246, 0.55)); }
+            50% { filter: drop-shadow(0 0 16px rgba(56, 189, 248, 0.75)); }
+        }
+
+        .medical-illus {
+            animation: pulseGlow 4s infinite ease-in-out;
+        }
+
+        @media print {
+            body {
+                background: #060818 !important;
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+            }
+            .no-print { display: none !important; }
+            .glass-card { box-shadow: none !important; break-inside: avoid; }
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col justify-between antialiased">
+
+    <!-- Hidden File Inputs for Custom Logo Upload -->
+    <input type="file" id="upload-mnu" accept="image/*" class="hidden" onchange="handleLogoUpload(event, 'mnu')">
+    <input type="file" id="upload-pharm" accept="image/*" class="hidden" onchange="handleLogoUpload(event, 'pharm')">
+    <input type="file" id="upload-micro" accept="image/*" class="hidden" onchange="handleLogoUpload(event, 'micro')">
+
+    <!-- ======================================================================= -->
+    <!-- HEADER: 3 UNIVERSITY BADGES + CENTER MEDICAL HERO + ACTION CONTROLS     -->
+    <!-- ======================================================================= -->
+    <header class="border-b border-purple-500/30 bg-navy-950/90 backdrop-blur-md">
+        <div class="max-w-[1480px] mx-auto px-4 sm:px-6 py-3 flex flex-col xl:flex-row items-center justify-between gap-3">
+
+            <!-- Left: 3 Crisp Circular University / Faculty / Department Badges -->
+            <div class="flex items-center gap-2.5">
+                <!-- 1. Mansoura National University -->
+                <div class="seal-badge" onclick="document.getElementById('upload-mnu').click()" title="Mansoura National University (Click to upload image)">
+                    <img id="img-mnu" src="mnu-logo.jpg" alt="MNU" class="hidden" onload="this.classList.remove('hidden'); this.nextElementSibling.classList.add('hidden');" onerror="this.classList.add('hidden');">
+                    <svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
+                        <circle cx="60" cy="60" r="57" fill="#FFFFFF" stroke="#0B1F3A" stroke-width="4"/>
+                        <circle cx="60" cy="60" r="39" fill="#0B1F3A" stroke="#D4AF37" stroke-width="4"/>
+                        <path d="M47 43 L51 34 L60 40 L69 34 L73 43 Z" fill="#D4AF37"/>
+                        <text x="60" y="67" text-anchor="middle" fill="#FFFFFF" font-family="Plus Jakarta Sans, sans-serif" font-weight="800" font-size="22" letter-spacing="1">MNU</text>
+                        <path d="M34 62 Q36 80 52 86" fill="none" stroke="#D4AF37" stroke-width="2.5" stroke-linecap="round" stroke-dasharray="3 3"/>
+                        <path d="M86 62 Q84 80 68 86" fill="none" stroke="#D4AF37" stroke-width="2.5" stroke-linecap="round" stroke-dasharray="3 3"/>
+                        <text x="60" y="15" text-anchor="middle" fill="#0B1F3A" font-family="Inter, sans-serif" font-weight="800" font-size="7.2">MANSOURA NATIONAL UNIV.</text>
+                        <text x="60" y="110" text-anchor="middle" fill="#0B1F3A" font-family="Inter, sans-serif" font-weight="800" font-size="8">جامعة المنصورة الأهلية</text>
+                    </svg>
+                </div>
+
+                <!-- 2. Faculty of Pharmacy -->
+                <div class="seal-badge" onclick="document.getElementById('upload-pharm').click()" title="Faculty of Pharmacy (Click to upload image)">
+                    <img id="img-pharm" src="pharmacy-logo.jpg" alt="Pharmacy" class="hidden" onload="this.classList.remove('hidden'); this.nextElementSibling.classList.add('hidden');" onerror="this.classList.add('hidden');">
+                    <svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
+                        <circle cx="60" cy="60" r="57" fill="#FFFFFF" stroke="#0B1F3A" stroke-width="4"/>
+                        <circle cx="60" cy="60" r="41" fill="#FFFFFF" stroke="#0B1F3A" stroke-width="2.5"/>
+                        <path d="M43 58 H77 L71 70 H49 Z" fill="#D4AF37"/>
+                        <rect x="57.5" y="70" width="5" height="14" fill="#D4AF37"/>
+                        <rect x="48" y="84" width="24" height="4" rx="2" fill="#D4AF37"/>
+                        <path d="M60 35 C52 35, 52 46, 61 50 C69 54, 67 66, 56 72 C51 75, 55 82, 63 82" fill="none" stroke="#0B1F3A" stroke-width="4.5" stroke-linecap="round"/>
+                        <circle cx="57" cy="36" r="3.5" fill="#0B1F3A"/>
+                        <ellipse cx="44" cy="48" rx="4" ry="7" transform="rotate(-30 44 48)" fill="#D4AF37"/>
+                        <ellipse cx="76" cy="48" rx="4" ry="7" transform="rotate(30 76 48)" fill="#D4AF37"/>
+                        <text x="60" y="14" text-anchor="middle" fill="#0B1F3A" font-family="Inter, sans-serif" font-weight="800" font-size="7.5">FACULTY OF PHARMACY</text>
+                        <text x="60" y="110" text-anchor="middle" fill="#0B1F3A" font-family="Inter, sans-serif" font-weight="800" font-size="8">كلية الصيدلة - MNU</text>
+                    </svg>
+                </div>
+
+                <!-- 3. Microbiology & Immunology Dept -->
+                <div class="seal-badge" onclick="document.getElementById('upload-micro').click()" title="Microbiology & Immunology Dept. (Click to upload image)">
+                    <img id="img-micro" src="pharmacy-logo 1.jpg" alt="Microbiology" class="hidden" onload="this.classList.remove('hidden'); this.nextElementSibling.classList.add('hidden');" onerror="this.classList.add('hidden');">
+                    <svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
+                        <circle cx="60" cy="60" r="57" fill="#FFFFFF" stroke="#D4AF37" stroke-width="4"/>
+                        <circle cx="60" cy="60" r="41" fill="#FFFFFF" stroke="#0B1F3A" stroke-width="2"/>
+                        <path d="M36 36 Q48 26 60 36 T84 36" fill="none" stroke="#0B1F3A" stroke-width="2.5"/>
+                        <path d="M36 36 Q48 46 60 36 T84 36" fill="none" stroke="#D4AF37" stroke-width="2.5"/>
+                        <rect x="54" y="42" width="8" height="22" rx="2" transform="rotate(-28 58 53)" fill="#D4AF37" stroke="#0B1F3A" stroke-width="1.5"/>
+                        <path d="M62 52 C74 52, 76 74, 60 78" fill="none" stroke="#0B1F3A" stroke-width="5" stroke-linecap="round"/>
+                        <rect x="44" y="79" width="32" height="5" rx="2" fill="#0B1F3A"/>
+                        <line x1="44" y1="66" x2="62" y2="66" stroke="#D4AF37" stroke-width="3" stroke-linecap="round"/>
+                        <text x="60" y="14" text-anchor="middle" fill="#0B1F3A" font-family="Inter, sans-serif" font-weight="800" font-size="6.8">MICROBIOLOGY &amp; IMMUNOLOGY</text>
+                        <text x="60" y="110" text-anchor="middle" fill="#0B1F3A" font-family="Inter, sans-serif" font-weight="800" font-size="7.5">قسم الميكروبيولوجي والمناعة</text>
+                    </svg>
+                </div>
+
+                <div class="hidden sm:block pl-1.5 border-l border-purple-500/30">
+                    <div class="font-display text-[11px] font-extrabold text-gold-400 uppercase tracking-wider">Mansoura National University</div>
+                    <div class="text-xs font-bold text-white leading-tight">Faculty of Pharmacy</div>
+                    <div class="text-[11px] text-purple-300">Microbiology &amp; Immunology Dept.</div>
+                </div>
+            </div>
+
+            <!-- Center: Glowing 3D-Style Medical Illustration + Bold Title -->
+            <div class="flex items-center gap-3.5 text-center sm:text-left">
+                <!-- Lancet-shaped Diplococci 3D SVG -->
+                <svg class="w-12 h-12 hidden md:block medical-illus flex-shrink-0" viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <defs>
+                        <radialGradient id="bactGrad" cx="35%" cy="35%" r="65%">
+                            <stop offset="0%" stop-color="#C084FC"/>
+                            <stop offset="55%" stop-color="#7C3AED"/>
+                            <stop offset="100%" stop-color="#3B0764"/>
+                        </radialGradient>
+                        <linearGradient id="capsuleRim" x1="0" y1="0" x2="80" y2="80">
+                            <stop offset="0%" stop-color="#F5B82E"/>
+                            <stop offset="100%" stop-color="#38BDF8"/>
+                        </linearGradient>
+                    </defs>
+                    <!-- Outer Polysaccharide Capsule Halo -->
+                    <rect x="6" y="18" width="68" height="44" rx="22" stroke="url(#capsuleRim)" stroke-width="2.5" stroke-dasharray="4 3" fill="rgba(139,92,246,0.12)"/>
+                    <!-- Left Lancet Coccus -->
+                    <path d="M13 40 C13 28, 37 26, 39 40 C37 54, 13 52, 13 40 Z" fill="url(#bactGrad)" stroke="#E9D5FF" stroke-width="1.2"/>
+                    <!-- Right Lancet Coccus -->
+                    <path d="M67 40 C67 28, 43 26, 41 40 C43 54, 67 52, 67 40 Z" fill="url(#bactGrad)" stroke="#E9D5FF" stroke-width="1.2"/>
+                    <!-- Specular Highlights -->
+                    <ellipse cx="25" cy="34" rx="5" ry="2.2" fill="rgba(255,255,255,0.45)"/>
+                    <ellipse cx="55" cy="34" rx="5" ry="2.2" fill="rgba(255,255,255,0.45)"/>
+                </svg>
+
+                <div>
+                    <div class="flex flex-wrap items-center justify-center sm:justify-start gap-2">
+                        <h1 class="font-display text-xl sm:text-2xl lg:text-[28px] font-extrabold tracking-tight text-white">
+                            <span class="italic text-gold-400 gold-glow">Streptococcus pneumoniae</span>
+                        </h1>
+                        <span class="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-purple-600/35 text-cyanGlow border border-cyanGlow/40">
+                            Epidemiological &amp; Clinical Dashboard
+                        </span>
+                    </div>
+                    <p class="text-xs text-slate-300 mt-0.5">
+                        Leading global cause of <span class="text-gold-400 font-semibold">Community-Acquired Pneumonia (CAP)</span>, <span class="text-cyanGlow font-semibold">Meningitis</span> &amp; <span class="text-coralGlow font-semibold">IPD</span>
+                    </p>
+                </div>
+
+                <!-- Illuminated Lungs SVG -->
+                <svg class="w-11 h-11 hidden lg:block medical-illus flex-shrink-0" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M32 10 V26 M32 26 L23 33 M32 26 L41 33" stroke="#F5B82E" stroke-width="2.5" stroke-linecap="round"/>
+                    <path d="M28 20 C18 20, 10 31, 10 45 C10 51, 15 54, 21 53 C26 52, 29 47, 29 40 V23 C29 21, 28.5 20, 28 20 Z" fill="rgba(56,189,248,0.22)" stroke="#38BDF8" stroke-width="2"/>
+                    <path d="M36 20 C46 20, 54 31, 54 45 C54 51, 49 54, 43 53 C38 52, 35 47, 35 40 V23 C35 21, 35.5 20, 36 20 Z" fill="rgba(139,92,246,0.28)" stroke="#A78BFA" stroke-width="2"/>
+                </svg>
+            </div>
+
+            <!-- Right: Presentation Guide Toggle + Export PDF -->
+            <div class="no-print flex items-center gap-2.5">
+                <button id="guideToggleBtn" onclick="togglePresenterMode()" class="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold bg-navy-800 text-cyanGlow border border-cyanGlow/45 hover:bg-cyanGlow/15 transition-all cursor-pointer">
+                    <i class="fa-solid fa-chalkboard-user"></i>
+                    <span>Presenter Guide: ON</span>
+                </button>
+                <button onclick="window.print()" class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-extrabold bg-gradient-to-r from-gold-400 to-gold-500 text-navy-950 hover:from-gold-300 hover:to-gold-400 shadow-lg shadow-gold-500/25 transition-all cursor-pointer">
+                    <i class="fa-solid fa-file-pdf"></i>
+                    <span>Export / Print PDF</span>
+                </button>
+            </div>
+
+        </div>
+    </header>
+
+    <!-- ======================================================================= -->
+    <!-- MAIN WIDESCREEN CONTENT                                                 -->
+    <!-- ======================================================================= -->
+    <main class="max-w-[1480px] w-full mx-auto px-4 sm:px-6 py-3.5 flex-grow flex flex-col justify-between gap-3.5">
+
+        <!-- =================================================================== -->
+        <!-- ROW 1: 4 EXPLANATORY KPI CARDS (CLICKABLE FOR TALKING POINTS)       -->
+        <!-- =================================================================== -->
+        <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
+
+            <!-- KPI 1 -->
+            <div onclick="openPopover('kpi1')" class="glass-card rounded-2xl p-3.5 cursor-pointer relative group">
+                <div class="flex items-center justify-between mb-1">
+                    <span class="text-[11px] font-bold uppercase tracking-wider text-purple-300">Global Annual Deaths</span>
+                    <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-purple-500/20 text-purple-200 border border-purple-400/35">GBD 2021</span>
+                </div>
+                <div class="font-display text-2xl sm:text-3xl font-extrabold text-gold-400 gold-glow">
+                    505,268
+                </div>
+                <p class="text-[11px] text-slate-300 mt-1 leading-snug">
+                    Down <span class="text-emerald-400 font-bold">50.9%</span> from 1.03M in 1990 due to global PCV rollout.
+                </p>
+                <span class="no-print absolute bottom-2 right-2.5 text-[10px] text-gold-400/70 group-hover:text-gold-400">
+                    <i class="fa-solid fa-circle-info"></i>
+                </span>
+            </div>
+
+            <!-- KPI 2 -->
+            <div onclick="openPopover('kpi2')" class="glass-card rounded-2xl p-3.5 cursor-pointer relative group">
+                <div class="flex items-center justify-between mb-1">
+                    <span class="text-[11px] font-bold uppercase tracking-wider text-coralGlow">Under-5 Child Mortality</span>
+                    <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-coralGlow/20 text-rose-200 border border-coralGlow/40">139,267 Deaths</span>
+                </div>
+                <div class="font-display text-2xl sm:text-3xl font-extrabold text-cyanGlow cyan-glow">
+                    27.6%
+                </div>
+                <p class="text-[11px] text-slate-300 mt-1 leading-snug">
+                    Share of deaths in children &lt;5 yrs; highest burden in infants ≤1 yr.
+                </p>
+                <span class="no-print absolute bottom-2 right-2.5 text-[10px] text-cyanGlow/70 group-hover:text-cyanGlow">
+                    <i class="fa-solid fa-circle-info"></i>
+                </span>
+            </div>
+
+            <!-- KPI 3 -->
+            <div onclick="openPopover('kpi3')" class="glass-card rounded-2xl p-3.5 cursor-pointer relative group">
+                <div class="flex items-center justify-between mb-1">
+                    <span class="text-[11px] font-bold uppercase tracking-wider text-purple-300">Pediatric Carriage (Egypt)</span>
+                    <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-cyanGlow/15 text-cyanGlow border border-cyanGlow/35">Nasopharynx</span>
+                </div>
+                <div class="font-display text-2xl sm:text-3xl font-extrabold text-gold-400 gold-glow">
+                    ~30%
+                </div>
+                <p class="text-[11px] text-slate-300 mt-1 leading-snug">
+                    Healthy Egyptian children carrying <em class="text-white">S. pneumoniae</em> (primary reservoir).
+                </p>
+                <span class="no-print absolute bottom-2 right-2.5 text-[10px] text-gold-400/70 group-hover:text-gold-400">
+                    <i class="fa-solid fa-circle-info"></i>
+                </span>
+            </div>
+
+            <!-- KPI 4 -->
+            <div onclick="openPopover('kpi4')" class="glass-card rounded-2xl p-3.5 cursor-pointer relative group">
+                <div class="flex items-center justify-between mb-1">
+                    <span class="text-[11px] font-bold uppercase tracking-wider text-emerald-300">PCV13 Serotype Coverage</span>
+                    <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-200 border border-emerald-400/35">Egypt Studies</span>
+                </div>
+                <div class="font-display text-2xl sm:text-3xl font-extrabold text-cyanGlow cyan-glow">
+                    ~74%
+                </div>
+                <p class="text-[11px] text-slate-300 mt-1 leading-snug">
+                    Percentage of dominant Egyptian circulating serotypes covered by PCV13.
+                </p>
+                <span class="no-print absolute bottom-2 right-2.5 text-[10px] text-cyanGlow/70 group-hover:text-cyanGlow">
+                    <i class="fa-solid fa-circle-info"></i>
+                </span>
+            </div>
+
+        </section>
+
+        <!-- =================================================================== -->
+        <!-- ROW 2: 3 INTERACTIVE VISUAL PANELS (CHARTS + CLINICAL CONTEXT)      -->
+        <!-- =================================================================== -->
+        <section class="grid grid-cols-1 lg:grid-cols-3 gap-3.5">
+
+            <!-- PANEL 1: Global Burden & Mortality Shift -->
+            <div onclick="openPopover('panel1')" class="glass-card rounded-2xl p-4 flex flex-col justify-between cursor-pointer">
+                <div>
+                    <div class="flex items-center justify-between gap-2 mb-1">
+                        <h2 class="font-display text-sm font-extrabold text-white flex items-center gap-1.5">
+                            <i class="fa-solid fa-globe text-gold-400"></i>
+                            <span>Global Burden &amp; Mortality Shift</span>
+                        </h2>
+                        <span class="px-2 py-0.5 rounded-full text-[11px] font-extrabold bg-emerald-500/20 text-emerald-300 border border-emerald-400/40">
+                            −50.9% Drop
+                        </span>
+                    </div>
+                    <p class="text-[11px] text-slate-400 mb-2">
+                        Global pneumococcal LRI deaths (1990 vs. 2021) &amp; 2021 age split
+                    </p>
+                </div>
+
+                <!-- Bar Chart -->
+                <div class="relative h-40 w-full">
+                    <canvas id="globalMortalityChart"></canvas>
+                </div>
+
+                <!-- Mini Age-Split Visual Bar -->
+                <div class="mt-2.5 pt-2.5 border-t border-purple-500/25">
+                    <div class="flex justify-between text-[11px] font-semibold mb-1">
+                        <span class="text-coralGlow"><i class="fa-solid fa-child mr-1"></i>Children &lt;5 yrs: 27.6% (139,267)</span>
+                        <span class="text-gold-400">≥5 yrs: 72.4% (366,001)</span>
+                    </div>
+                    <div class="w-full h-2.5 rounded-full bg-navy-950 overflow-hidden flex border border-purple-500/30">
+                        <div class="bg-gradient-to-r from-coralGlow to-purple-500 h-full" style="width: 27.6%"></div>
+                        <div class="bg-gradient-to-r from-gold-500 to-gold-300 h-full" style="width: 72.4%"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- PANEL 2: Egypt Clinical Severity (Cairo Univ. Hospital Evidence) -->
+            <div onclick="openPopover('panel2')" class="glass-card rounded-2xl p-4 flex flex-col justify-between cursor-pointer">
+                <div>
+                    <div class="flex items-center justify-between gap-1.5 mb-1">
+                        <h2 class="font-display text-sm font-extrabold text-white flex items-center gap-1.5">
+                            <i class="fa-solid fa-hospital text-cyanGlow"></i>
+                            <span>Egypt Clinical Severity</span>
+                        </h2>
+                        <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-400/40">
+                            Hospital-based studies
+                        </span>
+                    </div>
+                    <p class="text-[11px] text-slate-400 mb-2">
+                        Case Fatality Rate (CFR) — Cairo Univ. Pediatric Study (not national surveillance)
+                    </p>
+                </div>
+
+                <!-- Horizontal CFR Bar Chart -->
+                <div class="relative h-40 w-full">
+                    <canvas id="egyptSeverityChart"></canvas>
+                </div>
+
+                <!-- Infant Vulnerability Callout -->
+                <div class="mt-2.5 pt-2.5 border-t border-purple-500/25 flex items-center justify-between text-[11px]">
+                    <span class="text-slate-300 font-medium">Annual Detection Rate:</span>
+                    <div class="flex items-center gap-2">
+                        <span class="px-2 py-0.5 rounded bg-coralGlow/20 text-rose-200 font-bold border border-coralGlow/35">
+                            Infants ≤1y: 110.5/100k
+                        </span>
+                        <span class="px-2 py-0.5 rounded bg-purple-500/20 text-purple-200 font-semibold">
+                            1–5y: 21.6/100k
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- PANEL 3: Antimicrobial Resistance & CLSI Clinical Pearl -->
+            <div onclick="openPopover('panel3')" class="glass-card rounded-2xl p-4 flex flex-col justify-between cursor-pointer">
+                <div>
+                    <div class="flex items-center justify-between gap-1.5 mb-1">
+                        <h2 class="font-display text-sm font-extrabold text-white flex items-center gap-1.5">
+                            <i class="fa-solid fa-pills text-gold-400"></i>
+                            <span>AMR &amp; CLSI Clinical Pearl</span>
+                        </h2>
+                        <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-purple-500/25 text-purple-200 border border-purple-400/40">
+                            Egypt / MENA
+                        </span>
+                    </div>
+                    <p class="text-[11px] text-slate-400 mb-2">
+                        Site-specific breakpoints &amp; empiric therapy guidance
+                    </p>
+                </div>
+
+                <!-- AMR Visual Progress Bars (Crystal Clear & Annotated) -->
+                <div class="space-y-2.5 my-auto">
+                    <!-- 1. Macrolides -->
+                    <div>
+                        <div class="flex justify-between text-[11px] mb-0.5">
+                            <span class="font-bold text-white">Macrolides (Azithromycin)</span>
+                            <span class="font-extrabold text-coralGlow">~58% Resistant</span>
+                        </div>
+                        <div class="w-full h-2 rounded-full bg-navy-950 overflow-hidden">
+                            <div class="bg-coralGlow h-full rounded-full" style="width: 58%"></div>
+                        </div>
+                        <p class="text-[10px] text-rose-300/90 mt-0.5">Avoid as empiric monotherapy for CAP in Egypt.</p>
+                    </div>
+
+                    <!-- 2. Penicillin Meningitis -->
+                    <div>
+                        <div class="flex justify-between text-[11px] mb-0.5">
+                            <span class="font-bold text-white">Penicillin (Meningitis Breakpoint)</span>
+                            <span class="font-extrabold text-amber-400">~45% Non-susceptible</span>
+                        </div>
+                        <div class="w-full h-2 rounded-full bg-navy-950 overflow-hidden">
+                            <div class="bg-amber-400 h-full rounded-full" style="width: 45%"></div>
+                        </div>
+                        <p class="text-[10px] text-amber-200/90 mt-0.5">Poor BBB penetration → Use Ceftriaxone + Vancomycin.</p>
+                    </div>
+
+                    <!-- 3. Penicillin / Amoxicillin High Dose -->
+                    <div>
+                        <div class="flex justify-between text-[11px] mb-0.5">
+                            <span class="font-bold text-white">Amoxicillin / Penicillin (High-Dose CAP)</span>
+                            <span class="font-extrabold text-cyanGlow">~88% Effective</span>
+                        </div>
+                        <div class="w-full h-2 rounded-full bg-navy-950 overflow-hidden">
+                            <div class="bg-cyanGlow h-full rounded-full" style="width: 88%"></div>
+                        </div>
+                        <p class="text-[10px] text-cyan-200/90 mt-0.5">High lung concentrations overcome altered PBPs.</p>
+                    </div>
+
+                    <!-- 4. Respiratory Fluoroquinolones -->
+                    <div>
+                        <div class="flex justify-between text-[11px] mb-0.5">
+                            <span class="font-bold text-white">Resp. Fluoroquinolones (Levofloxacin)</span>
+                            <span class="font-extrabold text-emerald-400">&gt;95% Susceptible</span>
+                        </div>
+                        <div class="w-full h-2 rounded-full bg-navy-950 overflow-hidden">
+                            <div class="bg-emerald-400 h-full rounded-full" style="width: 96%"></div>
+                        </div>
+                        <p class="text-[10px] text-emerald-200/90 mt-0.5">2nd-line reserve (penicillin allergy or comorbidities).</p>
+                    </div>
+                </div>
+            </div>
+
+        </section>
+
+        <!-- =================================================================== -->
+        <!-- ROW 3: 2 ACTIONABLE SUMMARY CARDS                                   -->
+        <!-- =================================================================== -->
+        <section class="grid grid-cols-1 lg:grid-cols-12 gap-3.5">
+
+            <!-- Left Card (7 Cols): Interactive Dominant Egyptian Serotypes & Vaccines -->
+            <div class="lg:col-span-7 glass-card rounded-2xl p-4 flex flex-col justify-between">
+                <div class="flex flex-wrap items-center justify-between gap-2 mb-2">
+                    <h3 class="font-display text-sm font-extrabold text-white flex items-center gap-1.5">
+                        <i class="fa-solid fa-dna text-gold-400"></i>
+                        <span>Dominant Egyptian Serotypes &amp; Vaccine Coverage</span>
+                    </h3>
+                    <span class="no-print text-[11px] text-cyanGlow font-medium">
+                        <i class="fa-solid fa-hand-pointer mr-1"></i>Click a serotype to check coverage
+                    </span>
+                </div>
+
+                <!-- Interactive Serotype Pills + Dynamic Vaccine Match Bar -->
+                <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-navy-950/75 rounded-xl p-2.5 border border-purple-500/25">
+                    <div class="flex items-center gap-2" id="serotypePills">
+                        <button onclick="selectSerotype('6A')" data-sero="6A" class="sero-pill px-3 py-1 rounded-lg font-display text-xs font-extrabold bg-gold-400 text-navy-950 shadow-md transition-all cursor-pointer">6A</button>
+                        <button onclick="selectSerotype('6B')" data-sero="6B" class="sero-pill px-3 py-1 rounded-lg font-display text-xs font-extrabold bg-purple-900/60 text-gold-400 border border-gold-400/45 hover:bg-purple-800/70 transition-all cursor-pointer">6B</button>
+                        <button onclick="selectSerotype('19A')" data-sero="19A" class="sero-pill px-3 py-1 rounded-lg font-display text-xs font-extrabold bg-purple-900/60 text-gold-400 border border-gold-400/45 hover:bg-purple-800/70 transition-all cursor-pointer">19A</button>
+                        <button onclick="selectSerotype('23F')" data-sero="23F" class="sero-pill px-3 py-1 rounded-lg font-display text-xs font-extrabold bg-purple-900/60 text-gold-400 border border-gold-400/45 hover:bg-purple-800/70 transition-all cursor-pointer">23F</button>
+                        <button onclick="selectSerotype('1')" data-sero="1" class="sero-pill px-3 py-1 rounded-lg font-display text-xs font-extrabold bg-purple-900/60 text-gold-400 border border-gold-400/45 hover:bg-purple-800/70 transition-all cursor-pointer">1</button>
+                    </div>
+
+                    <!-- Vaccine Coverage Badges -->
+                    <div id="vaccineMatchBadges" class="flex flex-wrap items-center gap-1.5 text-[11px]">
+                        <!-- Populated by JS -->
+                    </div>
+                </div>
+
+                <!-- Concise PCV vs PPSV23 Comparison -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5 mt-2.5 text-[11px]">
+                    <div class="rounded-xl bg-purple-950/50 border border-gold-400/35 px-3 py-2">
+                        <span class="font-extrabold text-gold-400">PCV13 / PCV15 / PCV20 (Conjugate):</span>
+                        <span class="text-slate-200"> T-cell dependent; effective in infants &lt;2 yrs, induces memory &amp; <strong>herd immunity</strong>.</span>
+                    </div>
+                    <div class="rounded-xl bg-navy-950/60 border border-cyanGlow/30 px-3 py-2">
+                        <span class="font-extrabold text-cyanGlow">PPSV23 (Polysaccharide):</span>
+                        <span class="text-slate-200"> T-cell independent; broader serotype range for adults <strong>≥65 yrs</strong> &amp; high-risk groups.</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Card (5 Cols): Key Clinical Takeaways -->
+            <div onclick="openPopover('takeaways')" class="lg:col-span-5 glass-card rounded-2xl p-4 flex flex-col justify-between cursor-pointer">
+                <div class="flex items-center justify-between mb-1.5">
+                    <h3 class="font-display text-sm font-extrabold text-white flex items-center gap-1.5">
+                        <i class="fa-solid fa-bullseye text-gold-400"></i>
+                        <span>Key Clinical Takeaways</span>
+                    </h3>
+                    <span class="text-[10px] font-bold text-purple-300">Summary</span>
+                </div>
+
+                <ul class="space-y-1.5 text-[11.5px] text-slate-200">
+                    <li class="flex items-start gap-2">
+                        <i class="fa-solid fa-check-circle text-gold-400 mt-0.5 flex-shrink-0"></i>
+                        <span><strong>Global Priority:</strong> Causes 505,268 annual deaths despite a 50.9% drop since 1990.</span>
+                    </li>
+                    <li class="flex items-start gap-2">
+                        <i class="fa-solid fa-check-circle text-coralGlow mt-0.5 flex-shrink-0"></i>
+                        <span><strong>Infant Vulnerability:</strong> 5× higher detection in infants ≤1 yr (110.5 vs. 21.6/100k) and 75% IPD fatality.</span>
+                    </li>
+                    <li class="flex items-start gap-2">
+                        <i class="fa-solid fa-check-circle text-cyanGlow mt-0.5 flex-shrink-0"></i>
+                        <span><strong>Smart Prescribing:</strong> Avoid macrolide monotherapy in Egypt (~58% resistance); use high-dose amoxicillin for CAP.</span>
+                    </li>
+                    <li class="flex items-start gap-2">
+                        <i class="fa-solid fa-check-circle text-emerald-400 mt-0.5 flex-shrink-0"></i>
+                        <span><strong>Prevention Impact:</strong> PCV13 covers ~74% of dominant Egyptian serotypes and curbs carriage (~30%).</span>
+                    </li>
+                </ul>
+            </div>
+
+        </section>
+
+    </main>
+
+    <!-- ======================================================================= -->
+    <!-- COMPACT ACADEMIC FOOTER                                                 -->
+    <!-- ======================================================================= -->
+    <footer class="py-2 px-4 sm:px-6 border-t border-purple-500/25 bg-navy-950/90">
+        <div class="max-w-[1480px] mx-auto flex flex-col sm:flex-row items-center justify-between gap-1 text-[10.5px] text-slate-400">
+            <span>
+                <strong class="text-gold-400">Note:</strong> Egyptian figures reflect hospital-based &amp; systematic review studies (not national surveillance).
+            </span>
+            <span>
+                <strong>References:</strong> 1. GBD 2021 LRI Study | 2. Draz et al. (2015) Cairo Univ. | 3. El-Kholy et al. (2020) | 4. CLSI M100
+            </span>
+        </div>
+    </footer>
+
+    <!-- ======================================================================= -->
+    <!-- PRESENTER EXPLANATION POPOVER MODAL                                     -->
+    <!-- ======================================================================= -->
+    <div id="presenterModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/75 backdrop-blur-sm p-4" onclick="closePopover(event)">
+        <div class="glass-card border-2 border-gold-400/70 rounded-2xl max-w-lg w-full p-5 shadow-2xl relative" onclick="event.stopPropagation()">
+            <div class="flex items-start justify-between gap-3 border-b border-purple-500/30 pb-3">
+                <div>
+                    <span class="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-gold-400 text-navy-950 uppercase tracking-wider">
+                        Presenter Talking Points
+                    </span>
+                    <h4 id="modalTitle" class="font-display text-lg font-extrabold text-white mt-1.5"></h4>
+                </div>
+                <button onclick="closePresenterModal()" class="w-8 h-8 rounded-lg bg-navy-950 text-slate-300 hover:text-white border border-purple-500/35 flex items-center justify-center cursor-pointer">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <div id="modalBody" class="mt-3.5 space-y-2.5 text-xs sm:text-sm text-slate-200 leading-relaxed"></div>
+
+            <div class="mt-4 pt-3 border-t border-purple-500/30 flex items-center justify-between text-[11px]">
+                <span id="modalRef" class="text-cyanGlow font-semibold"></span>
+                <button onclick="closePresenterModal()" class="px-3.5 py-1.5 rounded-lg font-bold bg-purple-600/40 hover:bg-purple-600/60 text-white border border-purple-400/40 cursor-pointer">
+                    Got it
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ======================================================================= -->
+    <!-- JAVASCRIPT: CHARTS, SEROTYPE MATRIX & PRESENTER POPOVER                 -->
+    <!-- ======================================================================= -->
+    <script>
+        let presenterModeEnabled = true;
+
+        // Register ChartDataLabels plugin globally
+        Chart.register(ChartDataLabels);
+
+        // 1. Chart.js Global Styling
+        Chart.defaults.color = '#CBD5E1';
+        Chart.defaults.font.family = "'Inter', sans-serif";
+        Chart.defaults.plugins.tooltip.backgroundColor = 'rgba(6, 8, 24, 0.96)';
+        Chart.defaults.plugins.tooltip.titleColor = '#F5B82E';
+        Chart.defaults.plugins.tooltip.bodyColor = '#F8FAFC';
+        Chart.defaults.plugins.tooltip.borderColor = 'rgba(245, 184, 46, 0.5)';
+        Chart.defaults.plugins.tooltip.borderWidth = 1;
+
+        function initCharts() {
+            // Chart 1: Global LRI Mortality Shift (1990 vs 2021)
+            const ctxGlobal = document.getElementById('globalMortalityChart').getContext('2d');
+            const grad1990 = ctxGlobal.createLinearGradient(0, 0, 0, 160);
+            grad1990.addColorStop(0, '#A78BFA');
+            grad1990.addColorStop(1, '#5B21B6');
+
+            const grad2021 = ctxGlobal.createLinearGradient(0, 0, 0, 160);
+            grad2021.addColorStop(0, '#FDE68A');
+            grad2021.addColorStop(1, '#D4AF37');
+
+            new Chart(ctxGlobal, {
+                type: 'bar',
+                data: {
+                    labels: ['1990 (Pre-PCV Era)', '2021 (GBD Estimate)'],
+                    datasets: [{
+                        data: [1028083, 505268],
+                        backgroundColor: [grad1990, grad2021],
+                        borderRadius: 8,
+                        barThickness: 54
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    layout: {
+                        padding: { top: 22 }
+                    },
+                    plugins: {
+                        legend: { display: false },
+                        datalabels: {
+                            anchor: 'end',
+                            align: 'top',
+                            offset: 2,
+                            color: (context) => context.dataIndex === 1 ? '#F5B82E' : '#E9D5FF',
+                            font: {
+                                family: "'Plus Jakarta Sans', sans-serif",
+                                weight: '800',
+                                size: 11.5
+                            },
+                            formatter: (value) => value.toLocaleString()
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: c => ` ${c.parsed.y.toLocaleString()} deaths`
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 1250000,
+                            grid: { color: 'rgba(139, 92, 246, 0.14)' },
+                            ticks: {
+                                font: { size: 10 },
+                                callback: v => v === 0 ? '0' : (v / 1000).toLocaleString() + 'k'
+                            }
+                        },
+                        x: {
+                            grid: { display: false },
+                            ticks: { color: '#F8FAFC', font: { size: 11, weight: '700' } }
+                        }
+                    }
+                }
+            });
+
+            // Chart 2: Egypt Case Fatality Rate (Cairo Univ. Study)
+            const ctxEgypt = document.getElementById('egyptSeverityChart').getContext('2d');
+            new Chart(ctxEgypt, {
+                type: 'bar',
+                data: {
+                    labels: [
+                        'IPD (Meningitis/Sepsis)',
+                        'All Cases Combined',
+                        'Non-IPD (Pneumonia/AOM)'
+                    ],
+                    datasets: [{
+                        data: [75.0, 33.3, 12.5],
+                        backgroundColor: ['#F43F5E', '#8B5CF6', '#38BDF8'],
+                        borderRadius: 7,
+                        barThickness: 22
+                    }]
+                },
+                options: {
+                    indexAxis: 'y',
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    layout: {
+                        padding: { right: 44 }
+                    },
+                    plugins: {
+                        legend: { display: false },
+                        datalabels: {
+                            anchor: 'end',
+                            align: 'right',
+                            offset: 6,
+                            color: '#FFFFFF',
+                            font: {
+                                family: "'Plus Jakarta Sans', sans-serif",
+                                weight: '800',
+                                size: 11.5
+                            },
+                            formatter: (value) => value.toFixed(1) + '%'
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: c => ` Case Fatality Rate: ${c.parsed.x}%`
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            beginAtZero: true,
+                            max: 100,
+                            grid: { color: 'rgba(139, 92, 246, 0.14)' },
+                            ticks: {
+                                font: { size: 10 },
+                                callback: v => v + '%'
+                            }
+                        },
+                        y: {
+                            grid: { display: false },
+                            ticks: { color: '#F8FAFC', font: { size: 10.5, weight: '600' } }
+                        }
+                    }
+                }
+            });
+        }
+
+        // 2. Interactive Egyptian Serotype -> Vaccine Coverage Matrix
+        const serotypeCoverage = {
+            '6A':  { PCV10: false, PCV13: true,  PCV15: true,  PCV20: true,  PPSV23: false, note: 'Covered by PCV13/15/20 (not in PCV10 or PPSV23).' },
+            '6B':  { PCV10: true,  PCV13: true,  PCV15: true,  PCV20: true,  PPSV23: true,  note: 'Universal coverage across all conjugate & polysaccharide vaccines.' },
+            '19A': { PCV10: false, PCV13: true,  PCV15: true,  PCV20: true,  PPSV23: true,  note: 'Often multidrug-resistant (MDR); requires PCV13+ for protection.' },
+            '23F': { PCV10: true,  PCV13: true,  PCV15: true,  PCV20: true,  PPSV23: true,  note: 'Major pediatric carriage & penicillin-non-susceptible serotype.' },
+            '1':   { PCV10: true,  PCV13: true,  PCV15: true,  PCV20: true,  PPSV23: true,  note: 'Leading cause of invasive pneumococcal outbreaks & empyema.' }
+        };
+
+        function selectSerotype(sero) {
+            document.querySelectorAll('.sero-pill').forEach(btn => {
+                if (btn.dataset.sero === sero) {
+                    btn.className = 'sero-pill px-3 py-1 rounded-lg font-display text-xs font-extrabold bg-gold-400 text-navy-950 shadow-md transition-all cursor-pointer';
+                } else {
+                    btn.className = 'sero-pill px-3 py-1 rounded-lg font-display text-xs font-extrabold bg-purple-900/60 text-gold-400 border border-gold-400/45 hover:bg-purple-800/70 transition-all cursor-pointer';
+                }
+            });
+
+            const info = serotypeCoverage[sero];
+            const vaccines = ['PCV10', 'PCV13', 'PCV15', 'PCV20', 'PPSV23'];
+            const container = document.getElementById('vaccineMatchBadges');
+
+            container.innerHTML = vaccines.map(v => {
+                const covered = info[v];
+                return covered
+                    ? `<span class="px-2 py-0.5 rounded-md font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-400/45"><i class="fa-solid fa-check mr-1"></i>${v}</span>`
+                    : `<span class="px-2 py-0.5 rounded-md font-medium bg-navy-900 text-slate-500 border border-slate-700 line-through">${v}</span>`;
+            }).join('');
+        }
+
+        // 3. Presenter Explanation Popover Content
+        const presenterNotes = {
+            kpi1: {
+                title: 'Global Annual Deaths: 505,268 (GBD 2021)',
+                points: [
+                    '• <strong>What to say:</strong> Globally, <em>Streptococcus pneumoniae</em> caused <strong>505,268 deaths</strong> and <strong>97.9 million</strong> lower respiratory infection (LRI) episodes in 2021.',
+                    '• <strong>Positive Trend:</strong> Deaths dropped by <strong>50.9%</strong> compared to 1990 (1,028,083 deaths), driven primarily by global introduction of Pneumococcal Conjugate Vaccines (PCVs) and improved antibiotic access.'
+                ],
+                ref: 'Source: Global Burden of Disease (GBD) 2021 LRI Collaborators'
+            },
+            kpi2: {
+                title: 'Under-5 Child Mortality: 27.6% (139,267 Deaths)',
+                points: [
+                    '• <strong>What to say:</strong> Children under 5 account for <strong>27.6%</strong> of all global pneumococcal deaths (139,267 children annually).',
+                    '• <strong>Why infants are vulnerable:</strong> Immature splenic marginal zone B-cells cannot mount strong T-cell-independent responses to the bacterial polysaccharide capsule before age 2.'
+                ],
+                ref: 'Source: GBD 2021 & WHO Pneumococcal Position Paper'
+            },
+            kpi3: {
+                title: 'Pediatric Nasopharyngeal Carriage in Egypt (~30%)',
+                points: [
+                    '• <strong>What to say:</strong> Systematic reviews of Egyptian studies show ~30% of healthy children carry <em>S. pneumoniae</em> asymptomatically in their nasopharynx.',
+                    '• <strong>Clinical Significance:</strong> Asymptomatic carriage is both the prerequisite for invasive disease and the primary community reservoir transmitting bacteria to infants and elderly adults.'
+                ],
+                ref: 'Source: Egyptian Systematic Review (El-Kholy et al., 2020)'
+            },
+            kpi4: {
+                title: 'PCV13 Serotype Coverage in Egypt (~74%)',
+                points: [
+                    '• <strong>What to say:</strong> Roughly <strong>74%</strong> of the serotypes isolated from Egyptian pediatric patients (such as 6A, 6B, 19A, 23F, and 1) are theoretically covered by PCV13.',
+                    '• <strong>Public Health Takeaway:</strong> Expanding conjugate vaccine coverage directly targets the most virulent and multidrug-resistant local strains.'
+                ],
+                ref: 'Source: El-Kholy et al. (2020) & Draz et al. (2015)'
+            },
+            panel1: {
+                title: 'Global Burden & Age Distribution (GBD 2021)',
+                points: [
+                    '• <strong>1990 vs. 2021:</strong> Total mortality halved (-50.9%), proving that conjugate vaccination works at a population scale.',
+                    '• <strong>Dual Age Risk:</strong> While children &lt;5 yrs represent 27.6% of deaths, adults ≥5 yrs (especially elderly ≥65 yrs with comorbidities) account for the remaining <strong>72.4%</strong> (366,001 deaths).'
+                ],
+                ref: 'Source: GBD 2021 Pneumococcal Lower Respiratory Infection Burden'
+            },
+            panel2: {
+                title: 'Egypt Clinical Severity — Cairo University Hospital Study',
+                points: [
+                    '• <strong>Important Caveat:</strong> Always clarify to examiners that Egypt lacks a national IPD surveillance registry; these figures come from hospital-based cohorts (Draz et al., 2008–2011).',
+                    '• <strong>Severity Gap:</strong> Invasive disease (IPD: meningitis/bacteremia) had a <strong>75.0% case fatality rate</strong> compared to <strong>12.5%</strong> in non-IPD.',
+                    '• <strong>Infant Spike:</strong> Detection rate in infants ≤1 yr (<strong>110.5/100k</strong>) was over 5× higher than in children aged 1–5 yrs (<strong>21.6/100k</strong>).'
+                ],
+                ref: 'Source: Draz et al. (2015), Cairo University Pediatric Hospital'
+            },
+            panel3: {
+                title: 'Antimicrobial Resistance & CLSI Breakpoints',
+                points: [
+                    '• <strong>Mechanism:</strong> Penicillin resistance in <em>S. pneumoniae</em> is caused by altered <strong>Penicillin-Binding Proteins (PBPs)</strong>—NOT beta-lactamase production (so adding clavulanate does not overcome pneumococcal penicillin resistance).',
+                    '• <strong>CLSI Site-Specific Rule:</strong> For <strong>meningitis</strong>, MIC ≥0.12 µg/mL is resistant due to low CSF drug levels (use Ceftriaxone + Vancomycin). For <strong>pneumonia (non-meningeal)</strong>, MIC ≤2 µg/mL is susceptible, so high-dose Amoxicillin (1g TID) remains ~88% effective.',
+                    '• <strong>Macrolides Warning:</strong> With ~58% resistance in Egypt/MENA, avoid Azithromycin monotherapy for CAP.'
+                ],
+                ref: 'Source: CLSI M100 Guidelines & IDSA/ATS CAP Guidelines'
+            },
+            takeaways: {
+                title: '4-Sentence Closing Pitch for Your Presentation',
+                points: [
+                    '1. "<em>Streptococcus pneumoniae</em> remains a top global killer with over 505,000 deaths yearly, despite a 50.9% decline since 1990."',
+                    '2. "In Egyptian hospital cohorts, infants under 1 year bear the steepest incidence (110.5/100k) and invasive disease carries a 75% fatality rate."',
+                    '3. "Clinically, high macrolide resistance (~58%) in Egypt makes high-dose amoxicillin—guided by site-specific CLSI breakpoints—our preferred empiric CAP therapy."',
+                    '4. "Finally, conjugate vaccines (PCV13/PCV20) cover ~74% of dominant Egyptian serotypes and interrupt nasopharyngeal transmission."'
+                ],
+                ref: 'MNU Faculty of Pharmacy — Microbiology & Immunology Dept.'
+            }
+        };
+
+        function togglePresenterMode() {
+            presenterModeEnabled = !presenterModeEnabled;
+            const btn = document.getElementById('guideToggleBtn');
+            if (presenterModeEnabled) {
+                btn.innerHTML = '<i class="fa-solid fa-chalkboard-user"></i><span>Presenter Guide: ON</span>';
+                btn.className = 'inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold bg-navy-800 text-cyanGlow border border-cyanGlow/45 hover:bg-cyanGlow/15 transition-all cursor-pointer';
+            } else {
+                btn.innerHTML = '<i class="fa-solid fa-chalkboard-user"></i><span>Presenter Guide: OFF</span>';
+                btn.className = 'inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold bg-navy-900 text-slate-400 border border-slate-700 hover:text-white transition-all cursor-pointer';
+            }
+        }
+
+        function openPopover(key) {
+            if (!presenterModeEnabled) return;
+            const data = presenterNotes[key];
+            if (!data) return;
+
+            document.getElementById('modalTitle').textContent = data.title;
+            document.getElementById('modalBody').innerHTML = data.points.map(p => `<p>${p}</p>`).join('');
+            document.getElementById('modalRef').textContent = data.ref;
+
+            const modal = document.getElementById('presenterModal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+
+        function closePresenterModal() {
+            const modal = document.getElementById('presenterModal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
+
+        function closePopover(e) {
+            if (e.target.id === 'presenterModal') closePresenterModal();
+        }
+
+        // 4. Custom JPG Logo Loader
+        function handleLogoUpload(event, key) {
+            const file = event.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const img = document.getElementById('img-' + key);
+                img.src = e.target.result;
+                img.classList.remove('hidden');
+                if (img.nextElementSibling) img.nextElementSibling.classList.add('hidden');
+            };
+            reader.readAsDataURL(file);
+        }
+
+        window.addEventListener('DOMContentLoaded', () => {
+            initCharts();
+            selectSerotype('6A');
+        });
+    </script>
+</body>
+</html>
